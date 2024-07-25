@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+#SBATCH --partition=c3_short
+#SBATCH --ntasks=1
+#SBATCH --mem=12000
+#SBATCH --nodes=1
+#SBATCH --begin=now
+#SBATCH --time=2:00:00
+#SBATCH --chdir=/media/labs/rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/FBT_scripts_CMG/
+
+#
+#################################################
+
+RESULTS=$1
+export RESULTS
+
+SUBJECT=$2
+export SUBJECT
+
+
+module load matlab/2022a
+run_file='/media/labs/rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/FBT_scripts_CMG/FBT_extract_gorilla_data.m'
+run_file='/media/labs/rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/FBT_scripts_CMG/FBT_run_models.m'
+matlab -nodisplay -nosplash < ${run_file}
