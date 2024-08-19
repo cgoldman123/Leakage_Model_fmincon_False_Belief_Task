@@ -22,15 +22,15 @@ with open(subject_list_path) as infile:
 
 
 # first process all the data
-ssub_path = '/media/labs/rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/FBT_scripts_CMG/run_FBT_process_data.ssub'
+#ssub_path = '/media/labs/rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/FBT_scripts_CMG/run_FBT_process_data.ssub'
 
-stdout_name = f"{results}/logs/FBT_process_data-%J.stdout"
-stderr_name = f"{results}/logs/FBT_process_data-%J.stderr"
+#stdout_name = f"{results}/logs/FBT_process_data-%J.stdout"
+#stderr_name = f"{results}/logs/FBT_process_data-%J.stderr"
 
-jobname = f'process_data_FBT_fit'
-os.system(f"sbatch -J {jobname} -o {stdout_name} -e {stderr_name} {ssub_path}")
+#jobname = f'process_data_FBT_fit'
+#os.system(f"sbatch -J {jobname} -o {stdout_name} -e {stderr_name} {ssub_path}")
 # wait 7 minutes
-time.sleep(10*60)
+#time.sleep(10*60)
 
 ssub_path = '/media/labs/rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/FBT_scripts_CMG/run_FBT.ssub'
 for subject in subjects:
@@ -46,4 +46,4 @@ for subject in subjects:
     
 
 
-###python3 /media/labs/rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/FBT_scripts_CMG/runall_FBT.py /media/labs/rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/prolific_model_results/prolific_fit_8-9-24
+###python3 /media/labs/rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/FBT_scripts_CMG/runall_FBT.py /media/labs/rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/prolific_model_results/prolific_fit_8-19-24

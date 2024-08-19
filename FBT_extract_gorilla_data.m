@@ -126,20 +126,17 @@ for sequence=1:10
                                 if strcmp(Tmain{tr+1,"Outcome"}, Tmain{tr,"Outcome"})
                                     continue;
                                 end
-                            else
-                                % for the last trial (a sampling trial), we
-                                % use the previous row (representing the
-                                % same sampling trial) because the code
-                                % errors otherwise when looking to see if
-                                % the next trial is a probe
-                                tr = tr-1; 
-                                
+                            
                             end
                             
 %                             if i_struct>360 %360 sampling trials
 %                                 continue
 %                             end
                             i_struct = i_struct + 1;
+                            if i_struct>360 %360 sampling trials
+                                fprintf(['This subject has more than 360 trials: ' subject '\n'])
+                                continue
+                            end
 
 
                             S(i_struct).trial=i_struct;
@@ -225,7 +222,7 @@ for sequence=1:10
                             % carter added lines below to write over tmp
                             tmp = Tmain(tr+1, strcmp(colnames,'Timed Out'));
                             if ~isnan(tmp{1,1})
-                                fprintf("Timeout for %s at line %s\n", subject, num2str(tr+1));
+                               % fprintf("Timeout for %s at line %s\n", subject, num2str(tr+1));
                             end
 
                             S(i_struct).timeout = tmp{1,1};
@@ -241,6 +238,7 @@ for sequence=1:10
 
                     cd(datadir)
                     save(['Sj_' subject '_' num2str(sj_j)], 'FBTdata')
+                    fprintf(['Processed Sequence ' char(string((sequence))) ': ' subject '\n'])
                 end
             end
         end
