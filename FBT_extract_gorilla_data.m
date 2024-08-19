@@ -120,12 +120,29 @@ for sequence=1:10
                     for i=1:length(sj_ind)
                         tr=sj_ind(i);
                         if contains(Tmain{tr,strcmp(colnames,'display')},'Sampling')
-                            i_struct = i_struct + 1;
-                            if i_struct>360 %360 sampling trials
-                                continue
+                            %CMG added because rows are for some reason doubled
+                            % this prevents adding rows where image is repeated
+                            if ~(size(Tmain,1) == tr) % make sure not at last trial
+                                if strcmp(Tmain{tr+1,"Outcome"}, Tmain{tr,"Outcome"})
+                                    continue;
+                                end
+                            else
+                                % for the last trial (a sampling trial), we
+                                % use the previous row (representing the
+                                % same sampling trial) because the code
+                                % errors otherwise when looking to see if
+                                % the next trial is a probe
+                                tr = tr-1; 
+                                
                             end
+                            
+%                             if i_struct>360 %360 sampling trials
+%                                 continue
+%                             end
+                            i_struct = i_struct + 1;
 
-                            S(i_struct).time = Tmain{tr, 1};
+
+                            S(i_struct).trial=i_struct;
 
                             j=strcmp(colnames,'Cue');
 
@@ -145,81 +162,74 @@ for sequence=1:10
                             else
                                 error('Neither a positive nor negative image!')
                             end
+                            S(i_struct).probe = nan;
+                            S(i_struct).ChosenColour = nan;
+                            S(i_struct).ReportedProbability = nan;
+                            S(i_struct).ChosenSide = nan;
+                            S(i_struct).presses = nan;
+                            S(i_struct).time = Tmain{tr, 1};
+
+                            
+                            S(i_struct).GroundTruth =  FBT_INPUTS.Pself(sequence,i_struct);
+                            S(i_struct).GroundTruthOther =  FBT_INPUTS.Pother(sequence,i_struct);
+                            S(i_struct).Score = nan;
+                            S(i_struct).TestSite = 'Tulsa';
+                        end
+
+                        if contains(Tmain{tr, 'display'}, 'probe')
+                            if ~contains(Tmain{tr, strcmp(colnames,'Zone Type')}, 'endValue') %end slider value
+                                continue;
+                            end
+                            
 
                             j=strcmp(colnames,'display');
-                            if contains(Tmain{tr+1, j}, 'Self probe')
+                            if contains(Tmain{tr, j}, 'Self probe')
                                 S(i_struct).probe = 1;
-                            elseif contains(Tmain{tr+1, j}, 'Other probe')
+                            elseif contains(Tmain{tr, j}, 'Other probe')
                                 S(i_struct).probe = 2;
                             else
                                 S(i_struct).probe = nan;
                             end
 
-                            if contains(Tmain{tr+1, j}, 'probe')
-                                k_table = 1;
-                                satis = 0;
-                                while satis == 0
-                                    if contains(Tmain{tr+k_table, strcmp(colnames,'Zone Type')}, 'endValue') %end slider value
-                                        satis = 1;
-                                    else
-                                        k_table = k_table + 1;
-                                    end
+                            if contains(Tmain{tr,strcmp(colnames,'scale_left')}, 'happy') 
+
+                                tmp = Tmain{tr,strcmp(colnames,'Response')};
+                                S(i_struct).ReportedProbability = 1-tmp/100;
+
+                                if  tmp < 50
+                                    S(i_struct).ChosenColour = 1;
+                                    S(i_struct).ChosenSide = -1;
+                                elseif tmp > 49
+                                    S(i_struct).ChosenColour = 0; %choose blue (pink/happy=1 yellow/blue=0)
+                                    S(i_struct).ChosenSide = 1;
                                 end
 
+                            elseif contains(Tmain{tr,strcmp(colnames,'scale_left')}, 'blue')
+                                tmp = Tmain{tr,strcmp(colnames,'Response')};
+                                S(i_struct).ReportedProbability = tmp/100;
 
-                                if contains(Tmain{tr+k_table,strcmp(colnames,'scale_left')}, 'happy') 
-
-                                    tmp = Tmain{tr+k_table,strcmp(colnames,'Response')};
-                                    S(i_struct).ReportedProbability = 1-tmp/100;
-
-                                    if  tmp < 50
-                                        S(i_struct).ChosenColour = 1;
-                                        S(i_struct).ChosenSide = -1;
-                                    elseif tmp > 49
-                                        S(i_struct).ChosenColour = 0; %choose blue (pink/happy=1 yellow/blue=0)
-                                        S(i_struct).ChosenSide = 1;
-                                    end
-
-                                elseif contains(Tmain{tr+k_table,strcmp(colnames,'scale_left')}, 'blue')
-                                    tmp = Tmain{tr+k_table,strcmp(colnames,'Response')};
-                                    S(i_struct).ReportedProbability = tmp/100;
-
-                                    if  tmp < 50
-                                        S(i_struct).ChosenColour = 0;
-                                        S(i_struct).ChosenSide = -1;
-                                    elseif tmp > 49
-                                        S(i_struct).ChosenColour = 1;
-                                        S(i_struct).ChosenSide = 1;
-                                    end
-
+                                if  tmp < 50
+                                    S(i_struct).ChosenColour = 0;
+                                    S(i_struct).ChosenSide = -1;
+                                elseif tmp > 49
+                                    S(i_struct).ChosenColour = 1;
+                                    S(i_struct).ChosenSide = 1;
                                 end
 
-                                tmp = Tmain(tr+k_table, strcmp(colnames,'Reaction Time'));
-                                S(i_struct).reaction_time = tmp{1,1};
-
-                                tmp = Tmain(tr+k_table, strcmp(colnames,'Timed Out'));
-                                % carter added lines below to write over tmp
-                                tmp = Tmain(tr+k_table+1, strcmp(colnames,'Timed Out'));
-                                if ~isnan(tmp{1,1})
-                                    fprintf("Timeout for %s at line %s\n", subject, num2str(tr+k_table+1));
-                                end
-                                
-                                S(i_struct).timeout = tmp{1,1};
-
-                                S(i_struct).presses = nan;
-                            else
-                                S(i_struct).ChosenColour = nan;
-                                S(i_struct).ReportedProbability = nan;
-                                S(i_struct).ChosenSide = nan;
-
-                                S(i_struct).presses = nan;
                             end
 
-                            S(i_struct).GroundTruth =  FBT_INPUTS.Pself(sequence,i_struct);
-                            S(i_struct).GroundTruthOther =  FBT_INPUTS.Pother(sequence,i_struct);
-                            S(i_struct).Score = nan;
-                            S(i_struct).TestSite = 'Tulsa';
-                            S(i_struct).trial=i_struct;
+                            tmp = Tmain(tr, strcmp(colnames,'Reaction Time'));
+                            S(i_struct).reaction_time = tmp{1,1};
+
+                            tmp = Tmain(tr, strcmp(colnames,'Timed Out'));
+                            % carter added lines below to write over tmp
+                            tmp = Tmain(tr+1, strcmp(colnames,'Timed Out'));
+                            if ~isnan(tmp{1,1})
+                                fprintf("Timeout for %s at line %s\n", subject, num2str(tr+1));
+                            end
+
+                            S(i_struct).timeout = tmp{1,1};
+
                         end
                     end
 
@@ -238,6 +248,7 @@ for sequence=1:10
     end
 end
 end
+
 
 
 

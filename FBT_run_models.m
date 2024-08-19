@@ -14,8 +14,8 @@ options.doprior_init=1;
 options.fitsjs='all';
 if ispc
     root = 'L:/';
-    result_dir = [root 'rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/prolific_model_results/prolific_fit_6-17-24'];
-    subject = '5f16f559325a640008bb9a07';
+    result_dir = [root 'rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/prolific_model_results/'];
+    subject = 'Sj_53b98f20fdf99b472f4700e4';
 elseif isunix
     root = '/media/labs/';
     result_dir = getenv('RESULTS');
@@ -43,6 +43,8 @@ for alpha=[1]
                         save([result_dir '/' subject '_' R.r.fittype '-rec'],'R');
                     case 'data'
                         save([result_dir '/' subject '_' model_string '_' R.r.fittype],'R');
+                        saveas(gcf, [result_dir '/' subject '_' model_string '_' R.r.fittype '.png']);
+                        close(gcf);
                 end
                 
                 results.subject = subject;

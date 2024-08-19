@@ -60,7 +60,7 @@ r.doparallel = doparallel;
 
 %Run models
 Np=length(r.opt_idx);
-[E,V,~,stats,bf] = emfit(r,Np,cell(Np,1),2000,0,1,r.maxit,0,'','',1,options.doprior_init);
+[E,V,~,stats,bf] = emfit_CMG(r,Np,cell(Np,1),2000,0,1,r.maxit,0,'','',1,options.doprior_init); % note that I am calling emfit_CMG
 
 %Save in results structure
 R.r=r;  %Input data

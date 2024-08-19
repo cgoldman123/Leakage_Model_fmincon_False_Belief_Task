@@ -30,7 +30,7 @@ stderr_name = f"{results}/logs/FBT_process_data-%J.stderr"
 jobname = f'process_data_FBT_fit'
 os.system(f"sbatch -J {jobname} -o {stdout_name} -e {stderr_name} {ssub_path}")
 # wait 7 minutes
-time.sleep(7*60)
+time.sleep(10*60)
 
 ssub_path = '/media/labs/rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/FBT_scripts_CMG/run_FBT.ssub'
 for subject in subjects:
