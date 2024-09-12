@@ -46,4 +46,4 @@ for subject in subjects:
     
 
 
-###python3 /media/labs/rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/FBT_scripts_CMG/runall_FBT.py /media/labs/rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/prolific_model_results/prolific_fit_8-19-24
+###python3 /media/labs/rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/FBT_scripts_CMG/runall_FBT.py /media/labs/rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/prolific_model_results/prolific_fit_9-12-24

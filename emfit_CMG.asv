@@ -344,25 +344,29 @@ if dostats
         %%%% CMG ADDED: Get evolving beliefs and gen beliefs
         [l,Bs,Bo,RP_hat] = fstr(E(:,sj),r,sj,musj(:,sj),nui,0);
 
-        % assemble ground truth probability of good outcome
+        % assemble ground truth probability of good outcome with a sliding
+        % window of 50
         true_self = nan(1,360);
         true_other = nan(1,360);
         true_self(1) = .5;
         true_other(1) = .5;
+        slider = 50;
         total_prob_other = nan(1,360); total_prob_self = nan(1,360);
         for i=1:360
             if r.subjects.data(i).cue == 1 % privileged trial
                 total_prob_self(i) = r.subjects.data(i).outcome;
-                nanmean(
-
+                true_self(i) = nanmean(total_prob_self(max(1,i-slider):i));
                 
             elseif r.subjects.data(i).cue == 2 % shared trial                
                 total_prob_self(i) = r.subjects.data(i).outcome;
                 total_prob_other(i) = r.subjects.data(i).outcome;
+                true_self(i) = nanmean(total_prob_self(max(1,i-slider):i));
+                true_other(i) = nanmean(total_prob_other(max(1,i-slider):i));
 
                 
             elseif r.subjects.data(i).cue == 3 % decoy trial
                 total_prob_other(i) = r.subjects.data(i).outcome;
+                true_other(i) = nanmean(total_prob_other(max(1,i-slider):i));
 
             end
             
@@ -373,7 +377,7 @@ if dostats
         
         probe = r.subjects.probe; % see if probe was for self (probe==1) or other (probe==2)
         predicted_probability = RP_hat'; % Model's predicted probabilities
-        actual_probability = r.subjects.RP'; % Subject's actual probabilities
+        subj_probability = r.subjects.RP'; % Subject's actual probabilities
 
         % Define the trial numbers (1 to 360)
         trials = 1:360;
@@ -386,9 +390,9 @@ if dostats
         % Plot for Self probes (probe == 1)
         subplot(3,1,1); % Create a subplot for self probes
         hold on;
-        self_indices = probe == 1; % Logical index for self probes
-        plot(trials(self_indices), actual_probability(self_indices), 's-', 'DisplayName', 'Reported Emotion', 'Color', 'b');
-        plot(trials(self_indices), predicted_probability(self_indices), 'd-', 'DisplayName', 'Predicted Emotion', 'Color', 'r');
+        self_probe_indices = probe == 1; % Logical index for self probes
+        plot(trials(self_probe_indices), subj_probability(self_probe_indices), 's-', 'DisplayName', 'Reported Emotion', 'Color', 'b');
+        plot(trials(self_probe_indices), predicted_probability(self_probe_indices), 'd-', 'DisplayName', 'Predicted Emotion', 'Color', 'r');
         xlabel('Trial');
         ylabel('Emotion');
         title('Self Emotion');
@@ -398,9 +402,9 @@ if dostats
         % Plot for Other probes (probe == 2)
         subplot(3,1,2); % Create a subplot for other probes
         hold on;
-        other_indices = probe == 2; % Logical index for self probes
-        plot(trials(other_indices), actual_probability(other_indices), 's-', 'DisplayName', 'Reported Emotion', 'Color', 'b');
-        plot(trials(other_indices), predicted_probability(other_indices), 'd-', 'DisplayName', 'Predicted Emotion', 'Color', 'r');
+        other_probe_indices = probe == 2; % Logical index for self probes
+        plot(trials(other_probe_indices), subj_probability(other_probe_indices), 's-', 'DisplayName', 'Reported Emotion', 'Color', 'b');
+        plot(trials(other_probe_indices), predicted_probability(other_probe_indices), 'd-', 'DisplayName', 'Predicted Emotion', 'Color', 'r');
         xlabel('Trial');
         ylabel('Emotion');
         title('Other Emotion');
@@ -425,6 +429,93 @@ if dostats
     end
     
     
+    % MODEL FREEE
+    % get ground truth probability in between each probe
+    true_self = nan(1,360);
+    true_other = nan(1,360);
+    true_self(1) = .5;
+    true_other(1) = .5;
+    total_prob_other = nan(1,360); total_prob_self = nan(1,360);
+    previous_other_probe_index = 1;
+    previous_self_probe_index = 1;
+    for i=1:360
+        if r.subjects.data(i).cue == 1 % privileged trial
+            total_prob_self(i) = r.subjects.data(i).outcome;
+            true_self(i) = nanmean(total_prob_self(previous_self_probe_index:i));
+
+        elseif r.subjects.data(i).cue == 2 % shared trial                
+            total_prob_self(i) = r.subjects.data(i).outcome;
+            total_prob_other(i) = r.subjects.data(i).outcome;
+            true_self(i) = nanmean(total_prob_self(previous_self_probe_index:i));
+            true_other(i) = nanmean(total_prob_other(previous_other_probe_index:i));
+
+
+        elseif r.subjects.data(i).cue == 3 % decoy trial
+            total_prob_other(i) = r.subjects.data(i).outcome;
+            true_other(i) = nanmean(total_prob_other(previous_other_probe_index:i));
+
+        end
+        if r.subjects.data(i).probe =
+
+    end
+    
+    
+    
+    % impute value for the NaNs in true_self and true_other
+    true_self_complete = true_self;
+    for i = 1:length(true_self)
+        if isnan(true_self(i))
+            true_self_complete(i) = true_self_complete(i-1);
+        else
+            true_self_complete(i) = true_self_complete(i);
+        end
+    end
+    true_other_complete = true_other;
+    for i = 1:length(true_other)
+        if isnan(true_other(i))
+            true_other_complete(i) = true_other_complete(i-1);
+        else
+            true_other_complete(i) = true_other_complete(i);
+        end
+    end
+    
+    
+    % Get average ratio between generative rating and subjective rating
+    % across blocks
+    
+    
+    
+    % Get correlation between generative rating and subjective rating
+    % across blocks
+    true_other_probe = true_other_complete(other_probe_indices)';
+    subj_other_probe = subj_probability(other_probe_indices)';
+    true_self_probe = true_self_complete(self_probe_indices)';
+    subj_self_probe = subj_probability(self_probe_indices)';
+    
+    corr_other = corr(true_other_probe, subj_other_probe);
+    corr_self = corr(true_self_probe, subj_self_probe);
+    
+    % get correlations in the difference between generative rating and
+    % subjective rating across blocks
+    true_other_difference = nan(1,length(true_other_probe)-1);
+    subj_other_difference = nan(1,length(subj_other_probe)-1);
+    
+    true_self_difference = nan(1,length(true_self_probe)-1);
+    subj_self_difference = nan(1,length(subj_self_probe)-1);
+
+    
+    
+    for i=1:length(other_true_differences)
+        true_other_difference(i) = true_other_probe(i+1) - true_other_probe(i);
+        subj_other_difference(i) = subj_other_probe(i+1) - subj_other_probe(i);    
+        
+        true_self_difference(i) = true_self_probe(i+1) - true_self_probe(i);
+        subj_self_difference(i) = subj_self_probe(i+1) - subj_self_probe(i);
+    end
+    
+    corr_other_difference = corr(true_other_difference', subj_other_difference');
+    corr_self_difference = corr(true_self_difference', subj_self_difference');
+
     
     
    % if maxit<=2; return; end								% end here if only want ML or ML & MAP0

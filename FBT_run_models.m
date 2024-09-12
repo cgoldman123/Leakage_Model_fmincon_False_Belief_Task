@@ -15,7 +15,7 @@ options.fitsjs='all';
 if ispc
     root = 'L:/';
     result_dir = [root 'rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/prolific_model_results/'];
-    subject = 'Sj_53b98f20fdf99b472f4700e4';
+    subject = 'Sj_66945ed6eccf6e78ece68276'; % Sj_66945ed6eccf6e78ece68276 Sj_53b98f20fdf99b472f4700e4
 elseif isunix
     root = '/media/labs/';
     result_dir = getenv('RESULTS');
@@ -44,7 +44,6 @@ for alpha=[1]
                     case 'data'
                         save([result_dir '/' subject '_' model_string '_' R.r.fittype],'R');
                         saveas(gcf, [result_dir '/' subject '_' model_string '_' R.r.fittype '.png']);
-                        close(gcf);
                 end
                 
                 results.subject = subject;
@@ -68,7 +67,13 @@ for alpha=[1]
                     results.(var) = R.E(a+b+d+l);
                 end
                 
+                results.corr_other = R.stats.corr_other; % correlation between subjective other ratings and true other probability of good outcome since last probe
+                results.corr_self = R.stats.corr_self; % correlation between subjective self ratings and true self probability of good outcome since last probe
+                results.corr_other_difference = R.stats.corr_other_difference; % correlation between the changes in subjective other ratings and the changes in true other probability of good outcome since last probe
+                results.corr_self_difference = R.stats.corr_self_difference; % correlation between the changes in subjective self ratings and the changes in true self probability of good outcome since last probe
+
                 writetable(struct2table(results), [result_dir '/' subject '_' model_string  '_fit.csv']);
+                close(gcf);
 
 
             end
