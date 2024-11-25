@@ -22,8 +22,12 @@ if ispc
 else
     root = '/media/labs/';
 end
+if strcmp(options.experiment, 'prolific')
+    directory = [root 'rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/prolific_data_processed'];
+else
+    directory = [root 'rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/local_data_processed'];
+end
 
-directory = [root 'rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/prolific_data_processed'];
 X = dir(directory);
 SjList = {X(contains({X.name}, '.mat') & contains({X.name}, subject)).name};
 r.nsjs=length(SjList);  %set this as needed

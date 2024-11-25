@@ -1,6 +1,6 @@
 function [E,V,alpha,stats,bf,fitparams] = emfit_CMG(r,Np,varargin)
 % Same as emfit but I added a chunk to run the model again to extract time
-% course of self/other beliefs
+% course of self/other beliefs and do some other mf analysis
 
 % %Giles Story Max Planck UCL Centre London 2020 - adapted code from Q Huys
 % and D Schad- adds option to use priors for the first round of EM or fit as
@@ -347,27 +347,27 @@ if dostats
         % assemble ground truth probability of good outcome with a sliding
         % window of 50
         num_trials = length(r.subjects.data);
-        true_self = nan(1,num_trials);
-        true_other = nan(1,num_trials);
-        true_self(1) = .5;
-        true_other(1) = .5;
+        true_self_prob = nan(1,num_trials);
+        true_other_prob = nan(1,num_trials);
+        true_self_prob(1) = .5;
+        true_other_prob(1) = .5;
         slider = 50;
-        total_prob_other = nan(1,num_trials); total_prob_self = nan(1,num_trials);
+        other_outcomes = nan(1,num_trials); self_outcomes = nan(1,num_trials);
         for i=1:num_trials
             if r.subjects.data(i).cue == 1 % privileged trial
-                total_prob_self(i) = r.subjects.data(i).outcome;
-                true_self(i) = nanmean(total_prob_self(max(1,i-slider):i));
+                self_outcomes(i) = r.subjects.data(i).outcome;
+                true_self_prob(i) = nanmean(self_outcomes(max(1,i-slider):i));
                 
             elseif r.subjects.data(i).cue == 2 % shared trial                
-                total_prob_self(i) = r.subjects.data(i).outcome;
-                total_prob_other(i) = r.subjects.data(i).outcome;
-                true_self(i) = nanmean(total_prob_self(max(1,i-slider):i));
-                true_other(i) = nanmean(total_prob_other(max(1,i-slider):i));
+                self_outcomes(i) = r.subjects.data(i).outcome;
+                other_outcomes(i) = r.subjects.data(i).outcome;
+                true_self_prob(i) = nanmean(self_outcomes(max(1,i-slider):i));
+                true_other_prob(i) = nanmean(other_outcomes(max(1,i-slider):i));
 
                 
             elseif r.subjects.data(i).cue == 3 % decoy trial
-                total_prob_other(i) = r.subjects.data(i).outcome;
-                true_other(i) = nanmean(total_prob_other(max(1,i-slider):i));
+                other_outcomes(i) = r.subjects.data(i).outcome;
+                true_other_prob(i) = nanmean(other_outcomes(max(1,i-slider):i));
 
             end
             
@@ -414,10 +414,10 @@ if dostats
         
         subplot(3,1,3); % Create a subplot for other probes
         hold on;
-        self_indices = ~isnan(true_self); % Logical index for self probes
-        plot(trials(self_indices), true_self(self_indices), 'o-', 'DisplayName', 'Self-Emotion', 'Color', [0 0.5 0]);
-        other_indices = ~isnan(true_other); % Logical index for self probes
-        plot(trials(other_indices), true_other(other_indices), 'o-', 'DisplayName', 'Other-Emotion', 'Color', [0.5 0 0.5]);
+        self_indices = ~isnan(true_self_prob); % Logical index for self probes
+        plot(trials(self_indices), true_self_prob(self_indices), 'o-', 'DisplayName', 'Self-Emotion', 'Color', [0 0.5 0]);
+        other_indices = ~isnan(true_other_prob); % Logical index for self probes
+        plot(trials(other_indices), true_other_prob(other_indices), 'o-', 'DisplayName', 'Other-Emotion', 'Color', [0.5 0 0.5]);
         xlabel('Trial');
         ylabel('Emotion');
         title('True Emotion');
@@ -432,90 +432,97 @@ if dostats
     
     % MODEL FREEE
     % get ground truth probability in between each probe
-    true_self = nan(1,num_trials);
-    true_other = nan(1,num_trials);
-    true_self(1) = .5;
-    true_other(1) = .5;
-    total_prob_other = nan(1,num_trials); total_prob_self = nan(1,num_trials);
+    true_self_prob = nan(1,num_trials); % true probability of good image for self trials (privileged and shared)
+    true_other_prob = nan(1,num_trials); % true probability of good image for other trials (decoy and shared)
+    confused_other_for_self_prob = nan(1,num_trials); % probability of good image for self trials as if it were confused for other (decoy and shared)
+    confused_self_for_other_prob = nan(1,num_trials); % probability of good image for other trials as if it were confused for self (privileged and shared)
+    confused_all_for_self_prob = nan(1,num_trials);
+    confused_all_for_other_prob = nan(1,num_trials);
+    
     previous_other_probe_index = 1;
     previous_self_probe_index = 1;
     for i=1:num_trials
-        if r.subjects.data(i).cue == 1 % privileged trial
-            total_prob_self(i) = r.subjects.data(i).outcome;
-            true_self(i) = nanmean(total_prob_self(previous_self_probe_index:i));
-
-        elseif r.subjects.data(i).cue == 2 % shared trial                
-            total_prob_self(i) = r.subjects.data(i).outcome;
-            total_prob_other(i) = r.subjects.data(i).outcome;
-            true_self(i) = nanmean(total_prob_self(previous_self_probe_index:i));
-            true_other(i) = nanmean(total_prob_other(previous_other_probe_index:i));
-
-
-        elseif r.subjects.data(i).cue == 3 % decoy trial
-            total_prob_other(i) = r.subjects.data(i).outcome;
-            true_other(i) = nanmean(total_prob_other(previous_other_probe_index:i));
-
+        % get the average probability of a good outcome for trials between
+        % the last probe and the current trial, based on the relevant cues
+        % cue==1 means privileged trial (just self supposed to see)
+        % cue==2 means shared trial
+        % cue==3 means decoy trial (just other supposed to see)
+        true_self_prob(i) = nanmean([r.subjects.data(([r.subjects.data.cue]' == 1 | [r.subjects.data.cue]' == 2) & ([r.subjects.data.trial]'>=previous_self_probe_index) & ([r.subjects.data.trial]'<=i)).outcome]');
+        true_other_prob(i) = nanmean([r.subjects.data(([r.subjects.data.cue]' == 2 | [r.subjects.data.cue]' == 3) & ([r.subjects.data.trial]'>=previous_other_probe_index) & ([r.subjects.data.trial]'<=i)).outcome]');
+        confused_other_for_self_prob(i) = nanmean([r.subjects.data(([r.subjects.data.cue]' == 2 | [r.subjects.data.cue]' == 3) & ([r.subjects.data.trial]'>=previous_self_probe_index) & ([r.subjects.data.trial]'<=i)).outcome]');
+        confused_self_for_other_prob(i) = nanmean([r.subjects.data(([r.subjects.data.cue]' == 1 | [r.subjects.data.cue]' == 2) & ([r.subjects.data.trial]'>=previous_other_probe_index) & ([r.subjects.data.trial]'<=i)).outcome]');
+        confused_all_for_self_prob(i) = nanmean([r.subjects.data(([r.subjects.data.trial]'>=previous_self_probe_index) & ([r.subjects.data.trial]'<=i)).outcome]');
+        confused_all_for_other_prob(i) = nanmean([r.subjects.data(([r.subjects.data.trial]'>=previous_other_probe_index) & ([r.subjects.data.trial]'<=i)).outcome]');
+        % impute NaN values with previous probability
+        if i~=1 && isnan(true_self_prob(i))
+            true_self_prob(i) = true_self_prob(i-1);
         end
-        % update probe indexes after probe trial
+        if i~=1 && isnan(true_other_prob(i))
+            true_other_prob(i) = true_other_prob(i-1);
+        end
+        if i~=1 && isnan(confused_other_for_self_prob(i))
+            confused_other_for_self_prob(i) = confused_other_for_self_prob(i-1);
+        end
+        if i~=1 && isnan(confused_self_for_other_prob(i))
+            confused_self_for_other_prob(i) = confused_self_for_other_prob(i-1);
+        end
+        if i~=1 && isnan(confused_all_for_self_prob(i))
+            confused_all_for_self_prob(i) = confused_all_for_self_prob(i-1);
+        end
+        if i~=1 && isnan(confused_all_for_other_prob(i))
+            confused_all_for_other_prob(i) = confused_all_for_other_prob(i-1);
+        end
+        
+
         if r.subjects.data(i).probe == 1
             previous_self_probe_index = i+1;
         elseif r.subjects.data(i).probe == 2
             previous_other_probe_index = i+1;
         end
-
     end
     
-    
-    
-    % impute value for the NaNs in true_self and true_other
-    true_self_complete = true_self;
-    for i = 1:length(true_self)
-        if isnan(true_self(i))
-            true_self_complete(i) = true_self_complete(i-1);
-        else
-            true_self_complete(i) = true_self_complete(i);
-        end
-    end
-    true_other_complete = true_other;
-    for i = 1:length(true_other)
-        if isnan(true_other(i))
-            true_other_complete(i) = true_other_complete(i-1);
-        else
-            true_other_complete(i) = true_other_complete(i);
-        end
-    end
-    
-    
-    % Get correlation between generative rating and subjective rating
-    % across blocks
-    true_other_probe = true_other_complete(other_probe_indices)';
-    subj_other_probe = subj_probability(other_probe_indices)';
-    true_self_probe = true_self_complete(self_probe_indices)';
-    subj_self_probe = subj_probability(self_probe_indices)';
-    
-    stats.corr_other = corr(true_other_probe, subj_other_probe);
-    stats.corr_self = corr(true_self_probe, subj_self_probe);
-    
-    % get correlations in the difference between generative rating and
-    % subjective rating across blocks
-    true_other_difference = nan(1,length(true_other_probe)-1);
-    subj_other_difference = nan(1,length(subj_other_probe)-1);
-    
-    true_self_difference = nan(1,length(true_self_probe)-1);
-    subj_self_difference = nan(1,length(subj_self_probe)-1);
+    % Restrict to just probe trials
+    subj_self_probed_prob = subj_probability(self_probe_indices)';
+    subj_other_probed_prob = subj_probability(other_probe_indices)';
 
     
-    
+    true_self_probed_prob = true_self_prob(self_probe_indices)';
+    confused_other_for_self_probed_prob = confused_other_for_self_prob(self_probe_indices)';
+    true_other_probed_prob = true_other_prob(other_probe_indices)';
+    confused_self_for_other_probed_prob = confused_self_for_other_prob(other_probe_indices)';
+    confused_all_for_other_probed_prob = confused_all_for_other_prob(other_probe_indices)';
+    confused_all_for_self_probed_prob = confused_all_for_self_prob(self_probe_indices)';
+
+
+    % get difference block by block 
+    true_self_difference = nan(1,length(true_self_probed_prob)-1);
+    subj_self_difference = nan(1,length(subj_self_probed_prob)-1);
+    confused_other_for_self_probed_prob_difference = nan(1,length(confused_other_for_self_probed_prob)-1);
+    true_other_difference = nan(1,length(true_other_probed_prob)-1);
+    subj_other_difference = nan(1,length(subj_other_probed_prob)-1);
+    confused_self_for_other_probed_prob_difference = nan(1,length(confused_self_for_other_probed_prob)-1);
+    confused_all_for_self_probed_prob_difference = nan(1,length(confused_all_for_self_probed_prob)-1);
+    confused_all_for_other_probed_prob_difference = nan(1,length(confused_all_for_other_probed_prob)-1);
+
+
     for i=1:length(true_other_difference)
-        true_other_difference(i) = true_other_probe(i+1) - true_other_probe(i);
-        subj_other_difference(i) = subj_other_probe(i+1) - subj_other_probe(i);    
-        
-        true_self_difference(i) = true_self_probe(i+1) - true_self_probe(i);
-        subj_self_difference(i) = subj_self_probe(i+1) - subj_self_probe(i);
+        true_other_difference(i) = true_other_probed_prob(i+1) - true_other_probed_prob(i);
+        subj_other_difference(i) = subj_other_probed_prob(i+1) - subj_other_probed_prob(i);    
+        confused_other_for_self_probed_prob_difference(i) = confused_other_for_self_probed_prob(i+1) - confused_other_for_self_probed_prob(i);
+        true_self_difference(i) = true_self_probed_prob(i+1) - true_self_probed_prob(i);
+        subj_self_difference(i) = subj_self_probed_prob(i+1) - subj_self_probed_prob(i);
+        confused_self_for_other_probed_prob_difference(i) = confused_self_for_other_probed_prob(i+1) - confused_self_for_other_probed_prob(i);
+        confused_all_for_other_probed_prob_difference(i) = confused_all_for_other_probed_prob(i+1) - confused_all_for_other_probed_prob(i);
+        confused_all_for_self_probed_prob_difference(i) = confused_all_for_self_probed_prob(i+1) - confused_all_for_self_probed_prob(i);
+
     end
     
-    stats.corr_other_difference = corr(true_other_difference', subj_other_difference');
-    stats.corr_self_difference = corr(true_self_difference', subj_self_difference');
+    stats.corr_true_and_subj_self_prob = corr(true_self_difference', subj_self_difference');
+    stats.corr_true_and_subj_other_prob = corr(true_other_difference', subj_other_difference');
+    stats.corr_true_other_and_subj_self = corr(confused_other_for_self_probed_prob_difference', subj_self_difference');
+    stats.corr_true_self_and_subj_other = corr(confused_self_for_other_probed_prob_difference', subj_other_difference');
+    stats.corr_true_all_and_subj_other = corr(confused_all_for_other_probed_prob_difference', subj_other_difference');
+    stats.corr_true_all_and_subj_self = corr(confused_all_for_self_probed_prob_difference', subj_self_difference');
 
     
     

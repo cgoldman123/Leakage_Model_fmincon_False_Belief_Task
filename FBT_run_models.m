@@ -12,10 +12,20 @@ options.fit='data';
 options.doem=0;
 options.doprior_init=1;
 options.fitsjs='all';
+options.experiment = 'local'; %indicate if local or prolific
 if ispc
     root = 'L:/';
-    result_dir = [root 'rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/prolific_model_results/'];
-    subject = 'Sj_66945ed6eccf6e78ece68276'; % Sj_66945ed6eccf6e78ece68276 Sj_53b98f20fdf99b472f4700e4
+    if strcmp(options.experiment,'prolific')
+        result_dir = [root 'rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/prolific_model_results/'];
+    else
+        result_dir = [root 'rsmith/lab-members/cgoldman/Wellbeing/theory_of_mind/local_model_results/'];
+    end
+
+    if strcmp(options.experiment,'prolific')
+        subject = 'Sj_66945ed6eccf6e78ece68276'; % Sj_66945ed6eccf6e78ece68276 Sj_53b98f20fdf99b472f4700e4
+    else
+        subject = 'Sj_12072004';
+    end
 elseif isunix
     root = '/media/labs/';
     result_dir = getenv('RESULTS');
@@ -67,14 +77,15 @@ for alpha=[1]
                     results.(var) = R.E(a+b+d+l);
                 end
                 
-                results.corr_other = R.stats.corr_other; % correlation between subjective other ratings and true other probability of good outcome since last probe
-                results.corr_self = R.stats.corr_self; % correlation between subjective self ratings and true self probability of good outcome since last probe
-                results.corr_other_difference = R.stats.corr_other_difference; % correlation between the changes in subjective other ratings and the changes in true other probability of good outcome since last probe
-                results.corr_self_difference = R.stats.corr_self_difference; % correlation between the changes in subjective self ratings and the changes in true self probability of good outcome since last probe
-
+                results.corr_true_and_subj_self_prob = R.stats.corr_true_and_subj_self_prob; % correlation between subjective self ratings and true self probability of good outcome since last probe
+                results.corr_true_and_subj_other_prob = R.stats.corr_true_and_subj_other_prob; % correlation between subjective other ratings and true other probability of good outcome since last probe
+                results.corr_true_other_and_subj_self = R.stats.corr_true_other_and_subj_self; % correlation between the changes in subjective self ratings and the changes in true other probability of good outcome since last probe
+                results.corr_true_self_and_subj_other = R.stats.corr_true_self_and_subj_other; % correlation between the changes in subjective other ratings and the changes in true self probability of good outcome since last probe
+                results.corr_true_all_and_subj_self = R.stats.corr_true_all_and_subj_self; % correlation between the changes in subjective self ratings and the changes in probability of good outcome since last probe
+                results.corr_true_all_and_subj_other = R.stats.corr_true_all_and_subj_other; % correlation between the changes in subjective other ratings and the changes in probability of good outcome since last probe
                 writetable(struct2table(results), [result_dir '/' subject '_' model_string  '_fit.csv']);
                 close(gcf);
-
+                break;
 
             end
         end
